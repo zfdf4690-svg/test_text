@@ -1,0 +1,84 @@
+# 会议纪要助手项目架构分析报告
+
+该项目是一个功能完备的全栈 AI 会议纪要应用，集成了实时转录、摘要生成、知识库管理和会议规划功能。
+
+## 1. 技术栈
+
+| 模块 | 技术 / 库 |
+| :--- | :--- |
+| **前端框架** | React 19 + Vite 6 + TypeScript |
+| **样式与UI** | Tailwind CSS 4 + Shadcn/UI + Motion (动画) |
+| **路由与状态** | React Router 7 + React Context API |
+| **后端运行环境** | Node.js (使用 [tsx](file:///e:/%E7%B3%BB%E7%BB%9F%E9%BB%98%E8%AE%A4/%E6%A1%8C%E9%9D%A2/%E4%BD%9C%E5%93%81%E9%9B%86/%E4%BC%9A%E8%AE%AE%E7%BA%AA%E8%A6%81%E5%8A%A9%E6%89%8Bplan1/src/App.tsx) 直接运行 TypeScript) |
+| **后端框架** | Express 4 |
+| **数据库** | SQLite (通过 `better-sqlite3`) |
+| **AI 集成** | OpenAI API (用于会议摘要与分析) |
+
+---
+
+## 2. 文件结构架构图
+
+以下是项目的核心架构图，展示了文件组织和模块间耦合关系：
+
+```mermaid
+graph TD
+    subgraph Root ["根目录 (Project Root)"]
+        RT_Package["package.json (依赖与脚本)"]
+        RT_Server["server.ts (后端入口)"]
+        RT_Env[".env (环境变量)"]
+        RT_Data["data.db (SQLite 数据库)"]
+    end
+
+    subgraph Backend ["后端逻辑 (Express Server)"]
+        RT_Server --> BE_Express["Express App / API 路由"]
+        BE_Express --> BE_OpenAI["OpenAI SDK (摘要生成)"]
+        BE_Express --> BE_DB["server/db.ts (数据库工具)"]
+        BE_DB --> RT_Data
+    end
+
+    subgraph Frontend ["前端代码 (src)"]
+        FE_Main["main.tsx (入口)"] --> FE_App["App.tsx (主路由)"]
+        
+        subgraph FE_State ["状态管理"]
+            FE_App --> FE_Context["contexts/MeetingContext.tsx"]
+        end
+
+        subgraph FE_Pages ["主要页面 (pages/)"]
+            FE_App --> P_Dash["Dashboard.tsx (概览)"]
+            FE_App --> P_Active["ActiveMeeting.tsx (实时转叙)"]
+            FE_App --> P_KB["KnowledgeBase.tsx (知识库)"]
+            FE_App --> P_Sum["MeetingSummaryDetail.tsx (会议详情)"]
+            FE_App --> P_Plan["MeetingPlanner.tsx (规划助手)"]
+        end
+
+        subgraph FE_Common ["通用组件 (components/)"]
+            FE_Pages --> C_UI["components/ui/ (Shadcn UI)"]
+        end
+    end
+
+    RT_Server -.->|"API 数据流"| FE_App
+```
+
+---
+
+## 3. 核心功能模块
+
+### 3.1 实时会议录入 ([ActiveMeeting.tsx](file:///e:/%E7%B3%BB%E7%BB%9F%E9%BB%98%E8%AE%A4/%E6%A1%8C%E9%9D%A2/%E4%BD%9C%E5%93%81%E9%9B%86/%E4%BC%9A%E8%AE%AE%E7%BA%AA%E8%A6%81%E5%8A%A9%E6%89%8Bplan1/src/pages/ActiveMeeting.tsx))
+- 通过浏览器的 `SpeechRecognition` API 实现实时语音转文本（Transcript）。
+- 实时保存会议片段到 SQLite 数据库。
+
+### 3.2 智能摘要与分析
+- 调用 OpenAI 模型对会议转录内容进行分段总结（Summarization）。
+- 提取待办事项（Action Items）和核心决策（Key Decisions）。
+
+### 3.3 知识库管理 ([KnowledgeBase.tsx](file:///e:/%E7%B3%BB%E7%BB%9F%E9%BB%98%E8%AE%A4/%E6%A1%8C%E9%9D%A2/%E4%BD%9C%E5%93%81%E9%9B%86/%E4%BC%9A%E8%AE%AE%E7%BA%AA%E8%A6%81%E5%8A%A9%E6%89%8Bplan1/src/pages/KnowledgeBase.tsx))
+- 会议记录的持久化展示。
+- 提供全文检索和分类标签功能。
+
+### 3.4 会议规划 ([MeetingPlanner.tsx](file:///e:/%E7%B3%BB%E7%BB%9F%E9%BB%98%E8%AE%A4/%E6%A1%8C%E9%9D%A2/%E4%BD%9C%E5%93%81%E9%9B%86/%E4%BC%9A%E8%AE%AE%E7%BA%AA%E8%A6%81%E5%8A%A9%E6%89%8Bplan1/src/pages/MeetingPlanner.tsx))
+- 基于 AI 能力辅助用户撰写会议议题列表（Agenda）和预期目标。
+
+---
+
+## 4. 总结与建议
+项目采用了**前后端同构**（Mono-repo style）的开发模式，通过 [tsx](file:///e:/%E7%B3%BB%E7%BB%9F%E9%BB%98%E8%AE%A4/%E6%A1%8C%E9%9D%A2/%E4%BD%9C%E5%93%81%E9%9B%86/%E4%BC%9A%E8%AE%AE%E7%BA%AA%E8%A6%81%E5%8A%A9%E6%89%8Bplan1/src/App.tsx) 极大简化了前后端联调。代码逻辑清晰，利用 React Context 保证了跨页面的会议状态一致性，数据库与 AI 的结合逻辑简洁高效。
